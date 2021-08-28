@@ -1612,6 +1612,9 @@ var getViewer = function(prevChapter, nextChapter) {
     'text-align': 'center',
   }, 'body'),
       imagesCss = toStyleStr({
+        'direction': 'rtl',
+        'display': 'inline-grid',
+        'grid-template-columns': '1fr 1fr',
         'margin-top': '10px',
         'margin-bottom': '10px',
         'transform-origin': 'top center'
@@ -1619,9 +1622,16 @@ var getViewer = function(prevChapter, nextChapter) {
       imageCss = toStyleStr({
         'max-width': '100%',
         'display': 'block',
-        'margin': '3px auto'
+        // 'margin': '3px auto'
+        'margin': '0',
+        'margin-bottom': '10px',
+        'max-height': '100vh'
       }, '.ml-images img'),
+      oddImageCss = toStyleStr({
+        'justify-self': 'left'
+      }, '.ml-images img:nth-of-type(odd)'),
       counterCss = toStyleStr({
+        'display': 'none',
         'background-color': '#222',
         'color': 'white',
         'border-radius': '10px',
@@ -1710,7 +1720,7 @@ var getViewer = function(prevChapter, nextChapter) {
   // combine ui elements
   document.body.innerHTML = nav + '<div class="ml-images"></div>' + nav + floatingMsg + stats;
   // add main styles
-  addStyle('main', true, viewerCss, imagesCss, imageCss, counterCss, navCss, navHoverCss, statsCss, statsCollapseCss, statsHoverCss, boxCss, floatingMsgCss, buttonCss, keySettingCss, autoloadSettingCss, floatingMsgAnchorCss);
+  addStyle('main', true, viewerCss, imagesCss, imageCss, oddImageCss, counterCss, navCss, navHoverCss, statsCss, statsCollapseCss, statsHoverCss, boxCss, floatingMsgCss, buttonCss, keySettingCss, autoloadSettingCss, floatingMsgAnchorCss);
   // add user styles
   var userCss = storeGet('ml-setting-css-profiles');
   var curProf = storeGet('ml-setting-css-current') || 'Default';
@@ -2022,7 +2032,7 @@ var getViewer = function(prevChapter, nextChapter) {
   	var nextId = curId.split('-');
   	switch (toWhichPage) {
   		case 'next':
-  			nextId[2] = parseInt(nextId[2]) + 1;
+  			nextId[2] = parseInt(nextId[2]) + 2;
   			break;
   		case 'previous':
   			nextId[2] = parseInt(nextId[2]) - 1;
