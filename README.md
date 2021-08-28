@@ -1,3 +1,5 @@
+# Manga Loader Double Page Ver.
+
 # [Manga Loader](https://greasyfork.org/en/scripts/692-manga-loader)
 
 ## Contributing
