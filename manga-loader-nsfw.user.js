@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name       Manga Loader NSFW
+// @name       Manga Loader NSFW DUO
 // @namespace  http://www.fuzetsu.com/MangaLoaderNSFW
 // @version    1.0.57
 // @description  Loads manga chapter into one page in a long strip format, supports switching chapters and works for a variety of sites, minimal script with no dependencies, easy to implement new sites, loads quickly and works on mobile devices through bookmarklet
