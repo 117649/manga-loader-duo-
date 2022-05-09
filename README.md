@@ -30,7 +30,7 @@ Loading less pages at once is useful if experiencing broken images or browser sl
 Manually reload a misbehaving image (loading unusually slow, or stuck loading half way) by clicking the small refresh icon in the bottom right info/toolbar, then click on the image.
 
 **Bookmarklet**: To use the script as a bookmark, copy the following code and create a bookmark. Make sure the `javascript:` part of the code is still there after pasting, otherwise the bookmark function will not work. **This method also works for using the script on mobile devices such as phones and tablets**.
-`javascript:(function(){BM_MODE=true;document.body.appendChild(document.createElement('script')).src='https://greasyfork.org/scripts/692-manga-loader/code/Manga%20Loader.user.js';}())`
+`javascript:(function(){BM_MODE=true;var addScript=function(src,onload){var s=document.createElement('script');s.onload=onload;s.src=src;document.body.appendChild(s);};addScript('https://cdn.jsdelivr.net/gh/T2hhbmEK/manga-loader-duo@master/manga-loader.user.js',addScript.bind(null,'https://cdn.jsdelivr.net/gh/T2hhbmEK/manga-loader-duo@master/manga-loader-nsfw.user.js'));})();`
 
 ### Using the script on mobile devices
 **This video demonstrates using the script on an Android phone, but Manga Loader should work on any mobile device including iPhones, iPads and other tablets/phones**
