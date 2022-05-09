@@ -1,6 +1,6 @@
 # Manga Loader Double Page Ver.
 
-# [Manga Loader](https://greasyfork.org/en/scripts/692-manga-loader)
+Double page version of [Manga Loader](https://greasyfork.org/en/scripts/692-manga-loader)
 
 ## Contributing
 I have decided to put this script on github in the hopes people start submitting their implementations for new sites to speed up the development. 
