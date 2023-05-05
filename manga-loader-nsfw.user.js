@@ -154,19 +154,30 @@ var nsfwimp = [{
   numpages: '#page-select-s'
 }, {
   name: 'hitomi',
-  match: "^http(s)?://hitomi.la/reader/[0-9]+.html",
-  img: '#comicImages > img',
-  next: '#comicImages > img',
+  match: "^http(s)?://hitomi.la/reader/[0-9]+.html.*",
+  img: '#comicImages  img',
+  next: '#comicImages  img',
   numpages: function() {
-    return W.images.length;
+    return W.our_galleryinfo.length;
   },
   curpage: function() {
     return parseInt(W.curPanel);
   },
   pages: function(url, num, cb, ex) {
-    cb(W.images[num - 1].path, num);
+    let src = W.url_from_url_from_hash(W.galleryinfo['id'], W.our_galleryinfo[num - 1], 'webp', undefined, 'a');
+    if(!this.mlnsfwpp) this.mlnsfwpp = Promise.resolve(0);
+    let tp = this.mlnsfwpp;
+      (async _=>{
+          await tp;
+          cb(src, num);
+      })();
+    this.mlnsfwpp = new Promise(r=>{
+       tp.then(v=>{
+        setTimeout(_=>r(num),200);
+       });
+    })
   },
-  wait: '#comicImages > img'
+  wait: '#comicImages  img'
 }, {
   name: 'doujin-moe',
   _pages: null,
