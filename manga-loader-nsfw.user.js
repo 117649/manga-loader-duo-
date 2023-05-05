@@ -166,6 +166,10 @@ var nsfwimp = [{
   pages: function(url, num, cb, ex) {
     let src = W.url_from_url_from_hash(W.galleryinfo['id'], W.our_galleryinfo[num - 1], 'webp', undefined, 'a');
     if(!this.mlnsfwpp) this.mlnsfwpp = Promise.resolve(0);
+    if(!this.rlitvl) this.rlitvl =setInterval(_=>{
+        Array.from(document.getElementsByTagName("img")).filter(i=>i.style.cursor == "pointer")[Math.round(Math.random())]?.onclick();
+        if( pageStats.numLoaded ==  pageStats.numPages && Array.from(document.getElementsByTagName("img")).filter(i=>i.style.cursor == "pointer").length == 0) clearInterval(this.rlitvl);
+    }, 200);
     let tp = this.mlnsfwpp;
       (async _=>{
           await tp;
