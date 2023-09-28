@@ -1625,13 +1625,12 @@ var getViewer = function(prevChapter, nextChapter) {
         // 'margin': '3px auto'
         'margin': '0',
         'margin-bottom': '10px',
-        'max-height': '100vh'
-      }, '.ml-images img'),
+      }, '.ml-images img') 
+      + ".ml-images {\n grid-auto-flow: column;\n}\n\n@media (min-height: 100vh){\n .ml-images img{\n  max-width: 50%;\n }\n}\n\n.ml-images *:nth-child(4n+1),\n.ml-images *:nth-child(4n+2) {\n  grid-column: 1; \n}\n\n.ml-images *:nth-child(4n+3),\n.ml-images *:nth-child(4n+4) {\n  grid-column: 2; \n}",
       oddImageCss = toStyleStr({
         'justify-self': 'left'
       }, '.ml-images img:nth-of-type(odd)'),
       counterCss = toStyleStr({
-        'display': 'none',
         'background-color': '#222',
         'color': 'white',
         'border-radius': '10px',
