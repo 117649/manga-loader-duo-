@@ -47,7 +47,7 @@
 // @match *://hentai.cafe/manga/read/*
 // @match *://*.yuri-ism.net/slide/read/*
 // -- FOOLSLIDE NSFW END
-// @require 	https://github.com/T2hhbmEK/manga-loader/raw/master/manga-loader.user.js
+// @require 	https://github.com/117649/manga-loader-duo-/raw/master/manga-loader.user.js
 // ==/UserScript==
 
 /**
