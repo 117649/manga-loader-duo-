@@ -1612,24 +1612,31 @@ var getViewer = function(prevChapter, nextChapter) {
     'text-align': 'center',
   }, 'body'),
       imagesCss = toStyleStr({
-        'direction': 'rtl',
-        'display': 'inline-grid',
-        'grid-template-columns': '1fr 1fr',
         'margin-top': '10px',
         'margin-bottom': '10px',
         'transform-origin': 'top center'
-      }, '.ml-images'),
+      }, '.ml-images') + toStyleStr({
+        'direction': 'rtl',
+        'display': 'inline-grid',
+        'grid-template-columns': '1fr 1fr',
+        'grid-auto-flow': 'column'
+      }, 'body[PT="2"] .ml-images'),
       imageCss = toStyleStr({
         'max-width': '100%',
         'display': 'block',
-        // 'margin': '3px auto'
+        'margin': '3px auto'
+      }, '.ml-images img') +toStyleStr({
         'margin': '0',
         'margin-bottom': '10px',
-      }, '.ml-images img') 
-      + ".ml-images {\n grid-auto-flow: column;\n}\n\n@media (min-height: 100vh){\n .ml-images img{\n  max-width: 50%;\n }\n}\n\n.ml-images *:nth-child(4n+1),\n.ml-images *:nth-child(4n+2) {\n  grid-column: 1; \n}\n\n.ml-images *:nth-child(4n+3),\n.ml-images *:nth-child(4n+4) {\n  grid-column: 2; \n}",
+      }, 'body[PT="2"] .ml-images img') +
+        "@media (min-height: 100vh){\n .ml-images img{\n  max-width: 50%;\n }\n}",
       oddImageCss = toStyleStr({
-        'justify-self': 'left'
-      }, '.ml-images img:nth-of-type(odd)'),
+        'justify-self': 'left',
+      }, 'body[PT="2"] .ml-images img:nth-of-type(odd)') + toStyleStr({
+        'grid-column': 1
+      }, 'body[PT="2"] .ml-images img:nth-of-type(odd), body[PT="2"] .ml-images div:nth-of-type(odd)') + toStyleStr({
+        'grid-column': 2
+      }, 'body[PT="2"] .ml-images img:nth-of-type(even), body[PT="2"] .ml-images div:nth-of-type(even)'),
       counterCss = toStyleStr({
         'background-color': '#222',
         'color': 'white',
@@ -1700,7 +1707,7 @@ var getViewer = function(prevChapter, nextChapter) {
       }, '.ml-setting-autoload');
   // clear all styles and scripts
   var title = document.title;
-  document.head.innerHTML = '<meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">';
+  document.head.innerHTML = '<meta name="viewport" content="width=device-width, initial-scale=1"><link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">';
   document.title = title;
   document.body.className = '';
   document.body.style = '';
@@ -1715,7 +1722,8 @@ var getViewer = function(prevChapter, nextChapter) {
       '<i class="fa fa-info ml-button ml-info-button" title="See userscript information and help"></i> ' +
       '<i class="fa fa-bar-chart ml-button ml-more-stats-button" title="See page stats"></i> ' +
       '<i class="fa fa-cog ml-button ml-settings-button" title="Adjust userscript settings"></i> ' +
-      '<i class="fa fa-refresh ml-button ml-manual-reload" title="Manually refresh next clicked image."></i></span></div>';
+      '<i class="fa fa-refresh ml-button ml-manual-reload" title="Manually refresh next clicked image."></i> ' +
+      '<i class="fa ml-button ml-page-type" title="Dou/Sin"></i></span></div>';
   // combine ui elements
   document.body.innerHTML = nav + '<div class="ml-images"></div>' + nav + floatingMsg + stats;
   // add main styles
@@ -1723,6 +1731,7 @@ var getViewer = function(prevChapter, nextChapter) {
   // add user styles
   var userCss = storeGet('ml-setting-css-profiles');
   var curProf = storeGet('ml-setting-css-current') || 'Default';
+  var pgType = storeGet('ml-setting-page-type') || 'single';
   if(userCss && userCss.length > 0) userCss = userCss.filter(function(p) { return p.name === curProf; });
   userCss = userCss && userCss.length > 0 ? userCss[0].css : (storeGet('ml-setting-css') || '');
   addStyle('user', true, userCss);
@@ -1740,11 +1749,27 @@ var getViewer = function(prevChapter, nextChapter) {
     btnPrevChap: getEl('.ml-chap-prev'),
     btnExit: getEl('.ml-exit'),
     btnSettings: getEl('.ml-settings-button'),
+    btnPageType: getEl('.ml-page-type'),
     isTyping: false,
     ignore: false,
     moreStats: false,
     currentProfile: storeGet('ml-setting-css-current') || ''
   };
+  var setPT = function () {
+    switch (pgType) {
+      case 'single':
+        document.body.setAttribute('PT', 1);
+        UI.btnPageType.classList.remove('fa-square-full');
+        UI.btnPageType.classList.add('fa-grip-vertical');
+        break;
+      case 'double':
+        document.body.setAttribute('PT', 2);
+        UI.btnPageType.classList.remove('fa-grip-vertical');
+        UI.btnPageType.classList.add('fa-square-full');
+        break;
+    }
+  };
+  setPT();
   // message func
   var messageId = null;
   var showFloatingMsg = function(msg, timeout, html) {
@@ -1998,6 +2023,17 @@ var getViewer = function(prevChapter, nextChapter) {
       };
     }
   });
+  UI.btnPageType.addEventListener('click', function(evt) {
+    switch (pgType) {
+      case 'single':
+        storeSet('ml-setting-page-type', pgType = 'double');
+        break;
+      case 'double':
+        storeSet('ml-setting-page-type', pgType = 'single');
+        break;
+    };
+    setPT();
+  });
   // zoom
   var lastZoom, originalZoom,newZoomPostion;
   var changeZoom = function(action, elem) {
@@ -2031,7 +2067,7 @@ var getViewer = function(prevChapter, nextChapter) {
   	var nextId = curId.split('-');
   	switch (toWhichPage) {
   		case 'next':
-  			nextId[2] = parseInt(nextId[2]) + 2;
+  			nextId[2] = parseInt(nextId[2]) + ( pgType == 'single' ? 1 : 2 );
   			break;
   		case 'previous':
   			nextId[2] = parseInt(nextId[2]) - 1;
