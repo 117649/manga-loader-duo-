@@ -1628,8 +1628,7 @@ var getViewer = function(prevChapter, nextChapter) {
       }, '.ml-images img') +toStyleStr({
         'margin': '0',
         'margin-bottom': '10px',
-      }, 'body[PT="2"] .ml-images img') +
-        "@media (min-height: 100vh){\n .ml-images img{\n  max-width: 50%;\n }\n}",
+      }, 'body[PT="2"] .ml-images img'),
       oddImageCss = toStyleStr({
         'justify-self': 'left',
       }, 'body[PT="2"] .ml-images img:nth-of-type(odd)') + toStyleStr({
@@ -1756,6 +1755,7 @@ var getViewer = function(prevChapter, nextChapter) {
     currentProfile: storeGet('ml-setting-css-current') || ''
   };
   var setPT = function () {
+    let curP = getCurrentImage();
     switch (pgType) {
       case 'single':
         document.body.setAttribute('PT', 1);
@@ -1768,6 +1768,7 @@ var getViewer = function(prevChapter, nextChapter) {
         UI.btnPageType.classList.add('fa-square-full');
         break;
     }
+    curP?.scrollIntoView();
   };
   setPT();
   // message func
