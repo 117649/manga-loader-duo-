@@ -1605,6 +1605,7 @@ var createButton = function(text, action, styleStr) {
   return button;
 };
 
+var pgType = storeGet('ml-setting-page-type') || 'single';
 var getViewer = function(prevChapter, nextChapter) {
   var viewerCss = toStyleStr({
     'background-color': 'black !important',
@@ -1730,7 +1731,6 @@ var getViewer = function(prevChapter, nextChapter) {
   // add user styles
   var userCss = storeGet('ml-setting-css-profiles');
   var curProf = storeGet('ml-setting-css-current') || 'Default';
-  var pgType = storeGet('ml-setting-page-type') || 'single';
   if(userCss && userCss.length > 0) userCss = userCss.filter(function(p) { return p.name === curProf; });
   userCss = userCss && userCss.length > 0 ? userCss[0].css : (storeGet('ml-setting-css') || '');
   addStyle('user', true, userCss);
@@ -1761,11 +1761,19 @@ var getViewer = function(prevChapter, nextChapter) {
         document.body.setAttribute('PT', 1);
         UI.btnPageType.classList.remove('fa-square-full');
         UI.btnPageType.classList.add('fa-grip-vertical');
+        [...UI.images.getElementsByTagName('img')].forEach(x => x.style.width = null)
         break;
       case 'double':
         document.body.setAttribute('PT', 2);
         UI.btnPageType.classList.remove('fa-grip-vertical');
         UI.btnPageType.classList.add('fa-square-full');
+        [...UI.images.getElementsByTagName('img')]?.forEach(x => {
+          let r = window.innerHeight / x.height;
+          if(r < 1){
+            if(r > 0.75) x.style.width = x.width * r + 'px';
+            else x.style.width = '75%';
+          }
+        })
         break;
     }
     curP?.scrollIntoView();
@@ -2216,6 +2224,14 @@ var loadManga = function(imp) {
         addImage(img, UI.images, curPage, function() {
           pagesLoaded += 1;
           updateStats();
+
+          if(pgType == "double"){
+            let r = window.innerHeight / this.height;
+            if(r < 1){
+              if(r > 0.75) this.style.width = this.width * r + 'px';
+              else this.style.width = '75%';
+            }
+          }
         });
         if(!next && curPage < numPages) throw new Error('failed to retrieve next url for page ' + curPage);
         loadNextPage(next);
