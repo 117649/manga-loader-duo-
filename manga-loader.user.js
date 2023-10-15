@@ -5,9 +5,11 @@
 // @description  Support for over 70 sites! Loads manga chapter into one page in a long strip format, supports switching chapters, minimal script with no dependencies, easy to implement new sites, loads quickly and works on mobile devices through bookmarklet
 // @copyright  2016+, fuzetsu
 // @noframes
+// @connect *
 // @grant GM_getValue
 // @grant GM_setValue
 // @grant GM_deleteValue
+// @grant GM_xmlhttpRequest
 // @match *://bato.to/reader*
 // @match *://mangafox.me/manga/*/*/*
 // @match *://mangafox.la/manga/*/*/*
@@ -1719,6 +1721,7 @@ var getViewer = function(prevChapter, nextChapter) {
   var floatingMsg = '<pre class="ml-box ml-floating-msg"></pre>';
   // stats
   var stats = '<div class="ml-box ml-stats"><span title="hide stats" class="ml-stats-collapse">&gt;&gt;</span><span class="ml-stats-content"><span class="ml-stats-pages"></span> ' +
+      '<i class="fa fa-language ml-button ml-trans" title="trans."></i> ' +
       '<i class="fa fa-info ml-button ml-info-button" title="See userscript information and help"></i> ' +
       '<i class="fa fa-bar-chart ml-button ml-more-stats-button" title="See page stats"></i> ' +
       '<i class="fa fa-cog ml-button ml-settings-button" title="Adjust userscript settings"></i> ' +
@@ -1741,6 +1744,7 @@ var getViewer = function(prevChapter, nextChapter) {
     statsPages: getEl('.ml-stats-pages'),
     statsCollapse: getEl('.ml-stats-collapse'),
     btnManualReload: getEl('.ml-manual-reload'),
+    btnTrans: getEl('.ml-trans'),
     btnInfo: getEl('.ml-info-button'),
     btnMoreStats: getEl('.ml-more-stats-button'),
     floatingMsg: getEl('.ml-floating-msg'),
@@ -1840,6 +1844,49 @@ var getViewer = function(prevChapter, nextChapter) {
       ].join('<br>'), null, true);
     }
   });
+  UI.btnTrans.addEventListener("mousedown", async function(e) {
+  if (e.button === 1) {
+    e.preventDefault();
+    e.stopPropagation();
+    let c = Array.from(document.getElementsByClassName("ml-images")[0].getElementsByTagName("img")).filter(i=>!isBlobUrlRe.test(i.src) && i.style.cursor != "pointer").length;
+    let c1 =c;
+    for(let t of Array.from(document.getElementsByClassName("ml-images")[0].getElementsByTagName("img")).filter(i=>!isBlobUrlRe.test(i.src) && i.style.cursor != "pointer"))
+    {
+      showFloatingMsg('');
+      showFloatingMsg(--c1 + '/' + c);
+      t.oldsrc = t.src;
+      try {
+        t.src = await cotransTranslation(t);
+        showFloatingMsg('');
+      } catch (e) {showFloatingMsg(e);}
+    };
+  }});
+  UI.btnTrans.addEventListener('click', function(evt) {
+    var imgClick = async function(e) {
+      var target = e.target;
+      UI.images.removeEventListener('click', imgClick, false);
+      UI.images.style.cursor = '';
+      if(target.nodeName === 'IMG' && target.parentNode.className === 'ml-images') {
+        showFloatingMsg('');
+        if(!target.title) {
+          showFloatingMsg('Translating "' + target.src + '"', 3000);
+          if(target.complete) target.onload = null;
+          if(isBlobUrlRe.test(target.src))
+            target.src = target.oldsrc;
+          else
+          {
+            target.oldsrc = target.src;
+            target.src = await cotransTranslation(target);
+          }
+        }
+      } else {
+        showFloatingMsg('Cancelled Trans...', 3000);
+      }
+    };
+    showFloatingMsg('Left click the image you would like to translate.\nClick on the page margin to cancel.');
+    UI.images.style.cursor = 'pointer';
+    UI.images.addEventListener('click', imgClick, false);
+  });
   UI.btnManualReload.addEventListener('click', function(evt) {
     var imgClick = function(e) {
       var target = e.target;
@@ -1850,6 +1897,10 @@ var getViewer = function(prevChapter, nextChapter) {
         if(!target.title) {
           showFloatingMsg('Reloading "' + target.src + '"', 3000);
           if(target.complete) target.onload = null;
+          if(target.oldsrc) {
+            target.src = target.oldsrc;
+            target.oldsrc = null;
+          }
           target.src = target.src + (target.src.indexOf('?') !== -1 ? '&' : '?') + new Date().getTime();
         }
       } else {
@@ -2179,7 +2230,21 @@ var getCounter = function(imgNum) {
 var addImage = function(src, loc, imgNum, callback) {
   var image = new Image(),
       counter = getCounter(imgNum);
+  image.retries = 0;
   image.onerror = function() {
+    image.retries++;
+    if (image.retries > 1) {
+      if (image.retries > 6) {
+        image.retries = 0;
+        return;
+      }
+      if (image.retries > 5) {
+        renewsrc(image);
+        return;
+      }
+      image.onclick();
+      return;
+    }
     log('failed to load ' + src);
     image.onload = null;
     image.style.backgroundColor = 'white';
@@ -2192,6 +2257,7 @@ var addImage = function(src, loc, imgNum, callback) {
       image.style.cursor = '';
       image.src = src;
     };
+    image.onclick();
   };
   image.id = 'ml-pageid-' + imgNum;
   image.onload = callback;
@@ -2221,10 +2287,12 @@ var loadManga = function(imp) {
       addAndLoad = function(img, next) {
         if(!img) throw new Error('failed to retrieve img for page ' + curPage);
         updateStats();
+        let url = xhr.responseURL;
         addImage(img, UI.images, curPage, function() {
           pagesLoaded += 1;
           updateStats();
 
+          if (!imp.pages) this.url = url ||  document.location;
           if(pgType == "double"){
             let r = window.innerHeight / this.height;
             if(r < 1){
@@ -2370,6 +2438,7 @@ var waitAndLoad = function(imp) {
 var MLoaderLoadImps = function(imps) {
   var success = imps.some(function(imp) {
     if (imp.match && (new RegExp(imp.match, 'i')).test(pageUrl)) {
+      currentImp = imp;
       currentImpName = imp.name;
       if (W.BM_MODE || (autoload !== 'no' && (mAutoload || autoload))) {
         log('autoloading...');
@@ -2409,7 +2478,7 @@ var pageUrl = window.location.href,
       'margin': '0 10px 10px 0',
       'z-index': '9999999999'
     }),
-    currentImpName, btnLoad;
+    currentImp, currentImpName, btnLoad;
 
 // indicates whether UI loaded
 var isLoaded = false;
@@ -2423,6 +2492,209 @@ var mLoadNum = storeGet('mLoadNum') || 10;
 var pageStats = {
   numPages: null, numLoaded: null, loadLimit: null, curChap: null, numChaps: null
 };
+
+const renewsrc = async img =>{
+  let retries = 5;
+  return new Promise((resolve, reject) => {
+  if (!img.url) reject();
+  let xhr = new XMLHttpRequest();
+  xhr.open('get', img.url);
+  currentImp.beforexhr && currentImp.beforexhr(xhr);
+  xhr.onload = () =>{
+    let ex = extractInfo.bind(currentImp);
+    let page = document.implementation.createHTMLDocument().body;
+    page.innerHTML = xhr.response;
+    let i = ex('img', currentImp.imgmod, page);
+    if (!i) {
+      if (xhr.status == 503 && retries > 0) {
+        log('xhr status ' + xhr.status + ' retrieving ' + xhr.responseURL + ', ' + retries-- + ' retries remaining');
+        window.setTimeout(function () {
+          xhr.open('get', xhr.responseURL);
+          xhr.send();
+        }, 500);
+      } else {
+        log(e);
+        log('error getting details from next page, assuming end of chapter.');
+        reject();
+      }
+    }
+    else img.src = i;
+    resolve();
+  };
+  xhr.onerror = function() {
+    log('failed to load page, aborting', 'error');
+  };
+  xhr.send();
+})};
+const isBlobUrlRe = /^blob:/;
+const request = (url, details) => new Promise((resolve, reject) => {
+  if (typeof GM_xmlhttpRequest === 'undefined') throw new Error('pwa.alert.userscript_not_installed');
+  GM_xmlhttpRequest({
+    method: 'GET',
+    url,
+    headers: {
+      Referer: window.location.href
+    },
+    ...details,
+    onload: resolve,
+    onerror: reject,
+    ontimeout: reject
+  });
+});
+const download = async url => {
+  if (isBlobUrlRe.test(url)) {
+    const res = await fetch(url);
+    return res.blob();
+  }
+  const res = await request(url, {
+    responseType: 'blob'
+  });
+  if(res.status != 200) throw new Error();
+  return res.response;
+};
+const createFormData = imgBlob => {
+  const file = new File([imgBlob], `image.${imgBlob.type.split('/').at(-1)}`, {
+    type: imgBlob.type
+  });
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('mime', file.type);
+  formData.append('size', "L");
+  formData.append('detector', "ctd");
+  formData.append('direction', "auto");
+  formData.append('translator', "gpt3.5");
+  formData.append('tgt_lang', "CHS");
+  formData.append('target_language', "CHS");
+  formData.append('retry', "false");
+  return formData;
+};
+
+/** 等待翻译完成 */
+const waitTranslation = (id) => {
+  const ws = new WebSocket(`wss://api.cotrans.touhou.ai/task/${id}/event/v1`);
+  return new Promise((resolve, reject) => {
+    ws.onmessage = e => {
+      const msg = JSON.parse(e.data);
+      switch (msg.type) {
+        case 'result':
+          resolve(msg.result.translation_mask);
+          break;
+        case 'pending':
+          break;
+        case 'status':
+          break;
+        case 'error':
+          reject(new Error(msg.error_id));
+          break;
+        case 'not_found':
+          reject(new Error('translation.tip.error'));
+          break;
+      }
+    };
+  });
+};
+
+/** 将翻译后的内容覆盖到原图上 */
+const mergeImage = async (rawImage, maskUri) => {
+  const canvas = document.createElement('canvas');
+  const canvasCtx = canvas.getContext('2d');
+  const img = new Image();
+  img.src = URL.createObjectURL(rawImage);
+  await new Promise((resolve, reject) => {
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      canvasCtx.drawImage(img, 0, 0);
+      resolve(null);
+    };
+    img.onerror = reject;
+  });
+  const img2 = new Image();
+  img2.src = maskUri;
+  img2.crossOrigin = 'anonymous';
+  await new Promise(resolve => {
+    img2.onload = () => {
+      canvasCtx.drawImage(img2, 0, 0);
+      resolve(null);
+    };
+  });
+  const translated = await new Promise(resolve => {
+    canvas.toBlob(blob => {
+      resolve(blob);
+    }, 'image/png');
+  });
+  return URL.createObjectURL(translated);
+};
+
+/** 缩小过大的图片 */
+const resize = async (blob, w, h) => {
+  if (w <= 4096 && h <= 4096) return blob;
+  const img = new Image();
+  img.src = URL.createObjectURL(blob);
+  await new Promise((resolve, reject) => {
+    img.onload = resolve;
+    img.onerror = reject;
+  });
+  if (w <= 4096 && h <= 4096) return blob;
+  const scale = Math.min(4096 / w, 4096 / h);
+  const width = Math.floor(w * scale);
+  const height = Math.floor(h * scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, width, height);
+  URL.revokeObjectURL(img.src);
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(newBlob => newBlob ? resolve(newBlob) : reject(new Error('Canvas toBlob failed')));
+  });
+};
+
+/** 使用 cotrans 翻译指定图片 */
+const cotransTranslation = async img => {
+  let imgBlob;
+  try {
+    imgBlob = await download(img.src);
+  } catch (error) {
+    try {
+      await renewsrc(img);
+      imgBlob = await download(img.src);
+    } catch (error) {
+      throw new Error('translation.tip.download_img_failed');
+    }
+  }
+  try {
+    imgBlob = await resize(imgBlob, img.width, img.height);
+  } catch (error) {
+    throw new Error('translation.tip.resize_img_failed');
+  }
+  let res;
+  try {
+    res = await request('https://api.cotrans.touhou.ai/task/upload/v1', {
+      method: 'POST',
+      data: createFormData(imgBlob),
+      headers: {
+        Origin: 'https://cotrans.touhou.ai',
+        Referer: 'https://cotrans.touhou.ai/'
+      }
+    });
+  } catch (error) {
+    throw new Error('translation.tip.upload_error');
+  }
+  let resData;
+  try {
+    resData = JSON.parse(res.responseText);
+  } catch (_) {
+    throw new Error(res.responseText);
+  }
+  if ('error_id' in resData) throw new Error(resData.error_id);
+  if (!resData.id) throw new Error('translation.tip.id_not_returned');
+  const translation_mask = resData.result?.translation_mask || (await waitTranslation(resData.id));
+  return mergeImage(imgBlob, translation_mask);
+};
+const cotransTranslators = ['google', 'youdao', 'baidu', 'deepl', 'gpt3.5', 'offline', 'none'];
+
 
 // clear autoload
 storeDel('autoload');
