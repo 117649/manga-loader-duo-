@@ -5,9 +5,11 @@
 // @description  Loads manga chapter into one page in a long strip format, supports switching chapters and works for a variety of sites, minimal script with no dependencies, easy to implement new sites, loads quickly and works on mobile devices through bookmarklet
 // @copyright  2016+, fuzetsu
 // @noframes
+// @connect *
 // @grant GM_getValue
 // @grant GM_setValue
 // @grant GM_deleteValue
+// @grant GM_xmlhttpRequest
 // -- NSFW START
 // @match *://dynasty-scans.com/chapters/*
 // @match *://hentaifr.net/*
@@ -21,6 +23,7 @@
 // @match *://nhentai.net/g/*/*
 // @match *://e-hentai.org/s/*/*
 // @match *://exhentai.org/s/*/*
+// @match *://exhentai55ld2wyap5juskbm67czulomrouspdacjamjeloj7ugjbsad.onion/s/*/*
 // @match *://www.fakku.net/*/*/read*
 // @match *://hentaihere.com/m/*/*/*
 // @match *://www.hentaihere.com/m/*/*/*
@@ -95,7 +98,7 @@ var exUtil = {
 
 var nsfwimp = [{
   name: 'geh-and-exh',
-  match: "^https?://(e-hentai|exhentai).org/s/.*/.*",
+  match: "^https?://((e-hentai|exhentai).org|exhentai55ld2wyap5juskbm67czulomrouspdacjamjeloj7ugjbsad.onion)/s/.*/.*",
   img: '.sni > a > img, #img',
   next: '.sni > a, #i3 a',
   numpages: 'div.sn > div > span:nth-child(2)',
