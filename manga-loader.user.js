@@ -1848,19 +1848,31 @@ var getViewer = function(prevChapter, nextChapter) {
   if (e.button === 1) {
     e.preventDefault();
     e.stopPropagation();
-    let c = Array.from(document.getElementsByClassName("ml-images")[0].getElementsByTagName("img")).filter(i=>!isBlobUrlRe.test(i.src) && i.style.cursor != "pointer").length;
-    let c1 =c;
-    for(let t of Array.from(document.getElementsByClassName("ml-images")[0].getElementsByTagName("img")).filter(i=>!isBlobUrlRe.test(i.src) && i.style.cursor != "pointer"))
-    {
-      showFloatingMsg('');
-      showFloatingMsg(--c1 + '/' + c);
-      t.oldsrc = t.src;
-      try {
-        t.src = await cotransTranslation(t);
-        showFloatingMsg('');
-      } catch (e) {showFloatingMsg(e);}
-    };
-  }});
+      if (UI.btnTrans.ongoing) UI.btnTrans.ongoing();
+      else {
+        new Promise(async (resolve, reject) => {
+          UI.btnTrans.ongoing = _ => {
+            delete UI.btnTrans.ongoing;
+            reject();
+            showFloatingMsg('');
+            showFloatingMsg('Cancelled Trans...', 3000);
+          };
+          let c = Array.from(document.getElementsByClassName("ml-images")[0].getElementsByTagName("img")).filter(i => !isBlobUrlRe.test(i.src) && i.style.cursor != "pointer").length;
+          let c1 = c;
+          for (let t of Array.from(document.getElementsByClassName("ml-images")[0].getElementsByTagName("img")).filter(i => !isBlobUrlRe.test(i.src) && i.style.cursor != "pointer")) {
+            if (!UI.btnTrans.ongoing) return;
+            showFloatingMsg('');
+            showFloatingMsg(--c1 + '/' + c);
+            t.realsrc = t.src;
+            try {
+              t.src = await cotransTranslation(t);
+              showFloatingMsg('');
+            } catch (e) { showFloatingMsg(e); }
+          };
+        });
+      }
+    }
+  });
   UI.btnTrans.addEventListener('click', function(evt) {
     var imgClick = async function(e) {
       var target = e.target;
@@ -1872,10 +1884,10 @@ var getViewer = function(prevChapter, nextChapter) {
           showFloatingMsg('Translating "' + target.src + '"', 3000);
           if(target.complete) target.onload = null;
           if(isBlobUrlRe.test(target.src))
-            target.src = target.oldsrc;
+            target.src = target.realsrc;
           else
           {
-            target.oldsrc = target.src;
+            target.realsrc = target.src;
             target.src = await cotransTranslation(target);
           }
         }
@@ -1897,9 +1909,9 @@ var getViewer = function(prevChapter, nextChapter) {
         if(!target.title) {
           showFloatingMsg('Reloading "' + target.src + '"', 3000);
           if(target.complete) target.onload = null;
-          if(target.oldsrc) {
-            target.src = target.oldsrc;
-            target.oldsrc = null;
+          if(target.realsrc) {
+            target.src = target.realsrc;
+            target.realsrc = null;
           }
           target.src = target.src + (target.src.indexOf('?') !== -1 ? '&' : '?') + new Date().getTime();
         }
@@ -2234,12 +2246,9 @@ var addImage = function(src, loc, imgNum, callback) {
   image.onerror = function() {
     image.retries++;
     if (image.retries > 1) {
-      if (image.retries > 6) {
-        image.retries = 0;
-        return;
-      }
       if (image.retries > 5) {
-        renewsrc(image);
+        renewsrc(image).then( _ => { image.src = image.realsrc; });
+        image.retries = 0;
         return;
       }
       image.onclick();
@@ -2292,7 +2301,7 @@ var loadManga = function(imp) {
           pagesLoaded += 1;
           updateStats();
 
-          if (!imp.pages) this.url = url ||  document.location;
+          if (!imp.pages) this.url = url || document.location.toString();
           if(pgType == "double"){
             let r = window.innerHeight / this.height;
             if(r < 1){
@@ -2513,12 +2522,11 @@ const renewsrc = async img =>{
           xhr.send();
         }, 500);
       } else {
-        log(e);
         log('error getting details from next page, assuming end of chapter.');
         reject();
       }
     }
-    else img.src = i;
+    else img.realsrc = i;
     resolve();
   };
   xhr.onerror = function() {
@@ -2659,7 +2667,7 @@ const cotransTranslation = async img => {
   } catch (error) {
     try {
       await renewsrc(img);
-      imgBlob = await download(img.src);
+      imgBlob = await download(img.realsrc);
     } catch (error) {
       throw new Error('translation.tip.download_img_failed');
     }
